@@ -123,12 +123,12 @@
             if (foundRow) {
                 showResult({
                     success: true,
-                    id: foundRow[0],
-                    name: foundRow[3] || 'N/A',
-                    company: foundRow[2] || 'N/A',
-                    project: foundRow[4] || 'N/A',
-                    activeDate: foundRow[5] || 'N/A', // Đây là cột J từ file gốc
-                    approvalTime: foundRow[6] || 'N/A' // Đây là cột Z từ file gốc
+                    id: foundRow[2],
+                    name: foundRow[1] || 'N/A',
+                    company: foundRow[0] || 'N/A',
+                    project: foundRow[3] || 'N/A',
+                    activeDate: foundRow[4] || 'N/A', // Đây là cột J từ file gốc
+                    approvalTime: foundRow[5] || 'N/A' // Đây là cột Z từ file gốc
                 });
             } else {
                 showError("Mã QR không tồn tại trong danh sách!");
