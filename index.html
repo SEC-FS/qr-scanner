@@ -52,19 +52,38 @@
 </head>
 <body>
 
-<div class="scanner-box">
-    <h2 style="color: #1a73e8;">QR CHECK-IN</h2>
-    <div id="reader"></div>
-    <button class="btn" id="start-btn" onclick="initScanner()">BẮT ĐẦU QUÉT</button>
+<div class="header" style="text-align: center; margin-bottom: 20px;">
+  <h2 style="margin:0; color: #1a73e8;">FUSHAN QR SCANNER</h2>
+  <p style="margin:5px 0 0; opacity: 0.8; color: #666;">Security & Access Control</p>
 </div>
 
-<div class="results-container" id="results-box" style="display: none;">
-    <div class="results-title">
-        <span>LỊCH SỬ QUÉT</span>
-        <span id="scan-count" style="font-size: 12px; background: #eee; padding: 2px 8px; border-radius: 10px;">0</span>
+<div class="scanner-box">
+  <div id="setup-screen" style="padding: 40px 20px; text-align: center; background: white; border-radius: 12px; shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <div style="font-size: 40px; margin-bottom: 15px;">📷</div>
+    <button class="btn btn-pulse" onclick="initScanner()">KÍCH HOẠT CAMERA</button>
+    <p style="font-size: 0.85em; color: #666; margin-top: 15px;">Nhấn để cấp quyền truy cập máy ảnh</p>
+  </div>
+
+  <div id="reader" style="display:none; border-radius: 12px; overflow: hidden;"></div>
+  
+  <div class="controls" id="scanner-controls" style="display:none; margin-top: 20px;">
+    <div id="status" style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; text-align: center;">Ready to Scan</div>
+    
+    <div id="guest-info" style="text-align: center; color: #666;">
+        Please align QR code within the frame
     </div>
-    <div id="results-list">
-        </div>
+
+    <div class="loading-spinner" id="loader" style="display:none;"></div>
+    
+    <button class="btn btn-pulse" id="rescan-btn" onclick="startScanning()" style="display:none; width: 100%; justify-content: center; margin-top: 15px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+        <path d="M23 4v6h-6"></path>
+        <path d="M1 20v-6h6"></path>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      SCAN NEXT GUEST
+    </button>
+  </div>
 </div>
 
 <script>
