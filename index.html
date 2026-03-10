@@ -94,28 +94,33 @@
         });
     }
 
-   async function onScanSuccess(decodedText) {
+   function onScanSuccess(decodedText) {
         html5QrCode.pause();
-        document.getElementById('status').innerText = "⌛ Đang quét...";
+        document.getElementById('status').innerText = "⌛ Đang xử lý...";
     
-        const url = gas_webhook + "?action=checkin&id=" + encodeURIComponent(decodedText);
+        // 1. Tạo một hàm xử lý kết quả toàn cục
+        window.handleResult = function(data) {
+            console.log("Dữ liệu về:", data);
+            showResult(data); // Gọi hàm hiển thị của bạn
+            
+            // Dọn dẹp sau khi xong
+            const script = document.getElementById('gas-script');
+            if (script) script.remove();
+        };
     
-        try {
-            // Gọi thẳng tới Google
-            const response = await fetch(url);
-            
-            // Google sẽ redirect, fetch sẽ tự động đi theo link đó
-            const data = await response.json(); 
-            
-            console.log("Dữ liệu nhận được:", data);
-            showResult(data);
-            
-        } catch (error) {
-            console.error("Lỗi Fetch:", error);
-            // Nếu vẫn bị CORS, trình duyệt sẽ nhảy vào đây
-            alert("Trình duyệt chặn kết nối trực tiếp (CORS).");
+        // 2. Tự tạo thẻ script để gọi Google (Lách mọi luật CORS)
+        const script = document.createElement('script');
+        script.id = 'gas-script';
+        
+        // Gắn URL Web App của bạn vào đây (Nhớ thay URL mới từ Bước 1)
+        script.src = `${gas_webhook}?action=checkin&id=${encodeURIComponent(decodedText)}&callback=handleResult&_=${Date.now()}`;
+        
+        script.onerror = function() {
+            alert("Lỗi kết nối Server! Kiểm tra lại URL hoặc quyền Anyone.");
             html5QrCode.resume();
-        }
+        };
+    
+        document.body.appendChild(script);
     }
     
     // Hàm này sẽ được Google Apps Script gọi lại với dữ liệu kết quả
