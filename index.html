@@ -66,6 +66,12 @@
     // URL Web App của bạn
     const gas_webhook = "https://script.google.com/macros/s/AKfycbxouZfCDTTsjVHbaD1HVTDVs-E6534W0UopZHB1qAsPtA2SWc-04_x_Wt2YyslqAuFHxw/exec";
     let html5QrCode;
+    const API_KEY = 'AIzaSyBF1nVvgUYvaOV3kw3AuspMvPFpxLMz6IM';
+    const GS_CONFIG = {
+        API_KEY: 'AIzaSyBF1nVvgUYvaOV3kw3AuspMvPFpxLMz6IM', // API Key đã khóa theo domain GitHub ở Google Cloud
+        SHEET_ID: '1ktrChvVU0AfSwiwzDqyHx_2qpGM5f4oflmMxtcPdbzc', // ID của file chứa hàm IMPORTRANGE
+        RANGE: 'Sheet1!A:G' // Vùng dữ liệu ở file trung gian (A, B, C, D, J, X, Z - tổng 7 cột)
+    };
 
     // Tự động kích hoạt khi trang load xong
     window.onload = function() {
@@ -85,47 +91,53 @@
             config, 
             onScanSuccess
         ).then(() => {
-            document.getElementById('status').innerText = "SẴN SÀNG QUÉT";
-            document.getElementById('status').style.color = "#333";
+            updateStatus("SẴN SÀNG QUÉT", "#333");
         }).catch(err => {
-            document.getElementById('status').innerText = "❌ LỖI CAMERA";
-            document.getElementById('status').style.color = "#dc3545";
+            updateStatus("❌ LỖI CAMERA", "#dc3545");
             document.getElementById('guest-info').innerText = "Hãy đảm bảo bạn dùng HTTPS và đã cấp quyền Camera.";
         });
     }
 
-   function onScanSuccess(decodedText) {
+    async function onScanSuccess(decodedText) {
         html5QrCode.pause();
-        document.getElementById('status').innerText = "⌛ Đang xử lý...";
-    
-        // 1. Tạo một hàm xử lý kết quả toàn cục
-        window.handleResult = function(data) {
-            console.log("Dữ liệu về:", data);
-            showResult(data); // Gọi hàm hiển thị của bạn
+        updateStatus("⌛ Đang kiểm tra hệ thống...", "#007bff");
+
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${GS_CONFIG.SHEET_ID}/values/${GS_CONFIG.RANGE}?key=${GS_CONFIG.API_KEY}`;
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Lỗi kết nối API");
             
-            // Dọn dẹp sau khi xong
-            const script = document.getElementById('gas-script');
-            if (script) script.remove();
-        };
-    
-        // 2. Tự tạo thẻ script để gọi Google (Lách mọi luật CORS)
-        const script = document.createElement('script');
-        script.id = 'gas-script';
-        
-        // Gắn URL Web App của bạn vào đây (Nhớ thay URL mới từ Bước 1)
-        script.src = `${gas_webhook}?action=checkin&id=${encodeURIComponent(decodedText)}&callback=handleResult&_=${Date.now()}`;
-        
-        script.onerror = function() {
-            alert("Lỗi kết nối Server! Kiểm tra lại URL hoặc quyền Anyone.");
-            html5QrCode.resume();
-        };
-    
-        document.body.appendChild(script);
-    }
-    
-    // Hàm này sẽ được Google Apps Script gọi lại với dữ liệu kết quả
-    function handleResponse(response) {
-        showResult(response);
+            const data = await response.json();
+            const rows = data.values;
+
+            if (!rows || rows.length === 0) {
+                showError("Dữ liệu hệ thống trống!");
+                return;
+            }
+
+            // TÌM KIẾM ID (Giả sử ID nằm ở cột A - row[0])
+            // Cấu trúc mảng row: [0:A, 1:B, 2:C, 3:D, 4:J, 5:X, 6:Z]
+            const foundRow = rows.find(row => row[0] && row[0].toString().trim() === decodedText.trim());
+
+            if (foundRow) {
+                showResult({
+                    success: true,
+                    id: foundRow[0],
+                    name: foundRow[3] || 'N/A',
+                    company: foundRow[2] || 'N/A',
+                    project: foundRow[4] || 'N/A',
+                    activeDate: foundRow[5] || 'N/A', // Đây là cột J từ file gốc
+                    approvalTime: foundRow[6] || 'N/A' // Đây là cột Z từ file gốc
+                });
+            } else {
+                showError("Mã QR không tồn tại trong danh sách!");
+            }
+
+        } catch (error) {
+            console.error(error);
+            showError("Lỗi kết nối! Vui lòng kiểm tra API Key/Internet.");
+        }
     }
 
     function showResult(response) {
@@ -133,39 +145,37 @@
         const infoEl = document.getElementById('guest-info');
         const rescanBtn = document.getElementById('rescan-btn');
         
-        if (response.success) {
-            statusEl.innerText = "✅ CHECKED IN";
-            statusEl.style.color = "#28a745";
-            infoEl.innerHTML = `
-                <div class="info-container animate-in">
-                    <div class="info-item"><span class="info-label">Guest ID</span><span class="info-value id-value">${response.id}</span></div>
-                    <div class="info-item"><span class="info-label">Full Name</span><span class="info-value">${response.name}</span></div>
-                    <div class="info-item"><span class="info-label">Company</span><span class="info-value">${response.company}</span></div>
-                    <div class="info-item"><span class="info-label">Project</span><span class="info-value">${response.project}</span></div>
-                    <div class="info-item"><span class="info-label">Active Date</span><span class="info-value">${response.activeDate}</span></div>
-                    <div class="info-item"><span class="info-label">Approval</span><span class="info-value">${response.approvalTime || 'N/A'}</span></div>
-                </div>`;
-        } else {
-            statusEl.innerText = "❌ TỪ CHỐI TRUY CẬP";
-            statusEl.style.color = "#dc3545";
-            infoEl.innerHTML = `<div class="animate-in" style="color:#dc3545; font-weight:bold; margin-top:10px;">${response.message}</div>`;
-        }
+        updateStatus("✅ CHECKED IN", "#28a745");
         
-        // Hiển thị nút để quét người tiếp theo
+        infoEl.innerHTML = `
+            <div class="info-container animate-in">
+                <div class="info-item"><span class="info-label">Guest ID</span><span class="info-value id-value">${response.id}</span></div>
+                <div class="info-item"><span class="info-label">Full Name</span><span class="info-value">${response.name}</span></div>
+                <div class="info-item"><span class="info-label">Company</span><span class="info-value">${response.company}</span></div>
+                <div class="info-item"><span class="info-label">Project</span><span class="info-value">${response.project}</span></div>
+                <div class="info-item"><span class="info-label">Active Date (J)</span><span class="info-value">${response.activeDate}</span></div>
+                <div class="info-item"><span class="info-label">Note (Z)</span><span class="info-value">${response.approvalTime}</span></div>
+            </div>`;
+        
         rescanBtn.style.display = 'flex';
     }
 
+    function showError(message) {
+        updateStatus("❌ TỪ CHỐI", "#dc3545");
+        document.getElementById('guest-info').innerHTML = `<div class="animate-in" style="color:#dc3545; font-weight:bold; margin-top:10px;">${message}</div>`;
+        document.getElementById('rescan-btn').style.display = 'flex';
+    }
+
     function startScanning() {
-        // Reset giao diện
         document.getElementById('rescan-btn').style.display = 'none';
         document.getElementById('guest-info').innerText = "Vui lòng đưa mã QR vào khung hình";
-        document.getElementById('status').innerText = "SẴN SÀNG QUÉT";
-        document.getElementById('status').style.color = "#333";
-        
-        // Tiếp tục chạy camera
+        updateStatus("SẴN SÀNG QUÉT", "#333");
         html5QrCode.resume();
     }
-</script>
 
-</body>
-</html>
+    function updateStatus(text, color) {
+        const el = document.getElementById('status');
+        el.innerText = text;
+        el.style.color = color;
+    }
+</script>
