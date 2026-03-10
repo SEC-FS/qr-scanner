@@ -240,19 +240,4 @@
             }
         })();
     })();
-    
-    // --- LỚP 3: PHÁT HIỆN DEVTOOLS VÀ XOÁ NỘI DUNG ---
-    // Nếu người dùng cố tình lách luật để mở Console, trang web sẽ tự trắng xoá
-    setInterval(function() {
-        const threshold = 160;
-        const isDevToolsOpen = 
-            window.outerWidth - window.innerWidth > threshold || 
-            window.outerHeight - window.innerHeight > threshold;
-        
-        if (isDevToolsOpen) {
-            document.body.innerHTML = "<h1 style='text-align:center;margin-top:20%;color:red;'>CẢNH BÁO: HÀNH VI CAN THIỆP HỆ THỐNG BỊ CHẶN!</h1>";
-            setTimeout(() => { window.location.href = "about:blank"; }, 2000);
-        }
-        console.clear(); // Liên tục xoá sạch lịch sử Console
-    }, 1000);
 </script>
