@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scanner - Live Results</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f2f5; margin: 0; padding: 20px; }
+        .scanner-box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        #reader { width: 100%; border-radius: 10px; overflow: hidden; background: #000; }
+        .btn { background: #1a73e8; color: white; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 15px; transition: 0.3s; }
+        .btn:hover { background: #1557b0; }
+        
+        /* Khu vực hiển thị kết quả */
+        .results-container { width: 100%; max-width: 500px; margin-top: 20px; background: white; border-radius: 10px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .results-title { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 10px; font-weight: bold; color: #555; display: flex; justify-content: space-between; }
+        .result-item { padding: 10px; border-bottom: 1px solid #f9f9f9; display: flex; justify-content: space-between; align-items: center; animation: fadeIn 0.5s; }
+        .result-item:last-child { border-bottom: none; }
+        .badge { font-size: 11px; padding: 3px 8px; border-radius: 10px; background: #e8f0fe; color: #1967d2; }
+        .info-container {
+            text-align: left;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            border-bottom: 1px border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: bold;
+        }
+        .info-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+        .id-value {
+            color: #1a73e8;
+            font-family: monospace;
+        }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="scanner-box">
+    <h2 style="color: #1a73e8;">QR CHECK-IN</h2>
+    <div id="reader"></div>
+    <button class="btn" id="start-btn" onclick="initScanner()">BẮT ĐẦU QUÉT</button>
+</div>
+
+<div class="results-container" id="results-box" style="display: none;">
+    <div class="results-title">
+        <span>LỊCH SỬ QUÉT</span>
+        <span id="scan-count" style="font-size: 12px; background: #eee; padding: 2px 8px; border-radius: 10px;">0</span>
+    </div>
+    <div id="results-list">
+        </div>
+</div>
+
+<script>
+    const gas_webhook = "https://script.google.com/macros/s/AKfycbxouZfCDTTsjVHbaD1HVTDVs-E6534W0UopZHB1qAsPtA2SWc-04_x_Wt2YyslqAuFHxw/exec";
+    let scanCount = 0;
+
+    function onScanSuccess(decodedText) {
+        // 1. Hiển thị khu vực kết quả nếu đang ẩn
+        document.getElementById('results-box').style.display = 'block';
+
+        // 2. Thêm kết quả mới lên đầu danh sách
+        const list = document.getElementById('results-list');
+        const newItem = document.createElement('div');
+        newItem.className = 'result-item';
+        
+        const now = new Date();
+        const timeStr = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
+
+        newItem.innerHTML = `
+            <div style="text-align: left;">
+                <div style="font-weight: 500;">${decodedText}</div>
+                <div style="font-size: 11px; color: #888;">${timeStr}</div>
+            </div>
+            <span class="badge" id="status-${scanCount}">Đang gửi...</span>
+        `;
+        
+        list.insertBefore(newItem, list.firstChild);
+        
+        // Cập nhật số lượng
+        scanCount++;
+        document.getElementById('scan-count').innerText = scanCount;
+
+        // 3. Gửi dữ liệu về Google Sheets
+        sendToGAS(decodedText, scanCount - 1);
+    }
+
+    function sendToGAS(qrCode) {
+        const statusEl = document.getElementById('status');
+        statusEl.innerText = "⌛ ĐANG KIỂM TRA...";
+    
+        fetch(gas_webhook, {
+            method: 'POST',
+            body: JSON.stringify({qr_data: qrCode})
+        })
+        .then(res => res.json()) // Ở đây chúng ta cần nhận JSON trả về
+        .then(response => {
+            showResult(response);
+        })
+        .catch(err => {
+            showResult({success: false, message: "Lỗi kết nối máy chủ!"});
+        });
+    }
+    
+    function showResult(response) {
+        const statusEl = document.getElementById('status');
+        const infoEl = document.getElementById('guest-info');
+        const rescanBtn = document.getElementById('rescan-btn');
+        
+        // Hiện vùng thông tin
+        document.getElementById('results-box').style.display = 'block';
+    
+        if (response.success) {
+          statusEl.innerText = "✅ CHECKED IN";
+          statusEl.style.color = "#28a745";
+          infoEl.innerHTML = `
+            <div class="info-container">
+              <div class="info-item">
+                <span class="info-label">Guest ID</span>
+                <span class="info-value id-value">${response.id}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Full Name</span>
+                <span class="info-value">${response.name}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Company</span>
+                <span class="info-value">${response.company}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Project</span>
+                <span class="info-value">${response.project}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Active Date</span>
+                <span class="info-value">${response.activeDate}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Approval Time</span>
+                <span class="info-value">${response.approvalTime}</span>
+              </div>
+            </div>
+          `;
+        } else {
+          statusEl.innerText = "❌ ACCESS DENIED";
+          statusEl.style.color = "#dc3545";
+          infoEl.innerHTML = `<p style="color:red">${response.message}</p>`;
+        }
+    }
+
+    function initScanner() {
+        document.getElementById('start-btn').style.display = 'none';
+        
+        const html5QrCode = new Html5Qrcode("reader");
+        const config = { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0 
+        };
+
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            config, 
+            (decodedText) => {
+                // Tạm dừng 2 giây sau mỗi lần quét trúng để tránh quét lặp quá nhanh
+                html5QrCode.pause();
+                onScanSuccess(decodedText);
+                setTimeout(() => html5QrCode.resume(), 2000);
+            }
+        ).catch(err => {
+            alert("Không thể mở Camera. Hãy chắc chắn bạn đang dùng HTTPS.");
+            document.getElementById('start-btn').style.display = 'block';
+        });
+    }
+</script>
+
+</body>
+</html>
