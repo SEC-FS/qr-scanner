@@ -94,22 +94,26 @@
         });
     }
 
-    function onScanSuccess(decodedText) {
+   function onScanSuccess(decodedText) {
         html5QrCode.pause();
         document.getElementById('status').innerText = "⌛ ĐANG KIỂM TRA...";
-        document.getElementById('status').style.color = "#f39c12";
     
-        // Tạo một thẻ script động để gọi API (Kỹ thuật JSONP)
-        // Cách này không bị CSP 'connect-src' chặn vì nó coi như đang tải một thư viện JS
-        const script = document.createElement('script');
-        script.src = `${gas_webhook}?action=checkin&id=${encodeURIComponent(decodedText)}&callback=handleResponse`;
-        
-        // Tự động xóa thẻ script sau khi dùng xong để sạch sẽ bộ nhớ
-        script.onload = () => script.remove();
-        script.onerror = () => {
-            showResult({success: false, message: "Lỗi kết nối máy chủ!"});
-            script.remove();
+        // Xóa các thẻ script cũ (nếu có) để tránh xung đột
+        const oldScript = document.getElementById('api-query');
+        if (oldScript) oldScript.remove();
+    
+        // Tạo hàm callback toàn cục
+        window.handleResponse = function(response) {
+            showResult(response);
         };
+    
+        const script = document.createElement('script');
+        script.id = 'api-query';
+        // Thêm timestamp để tránh bị lưu cache cũ (Failed to load data)
+        script.src = `${gas_webhook}?action=checkin&id=${encodeURIComponent(decodedText)}&callback=handleResponse&v=${Date.now()}`;
+        
+        // Đảm bảo script được tải và chạy ngay
+        script.async = true; 
         
         document.body.appendChild(script);
     }
