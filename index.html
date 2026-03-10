@@ -103,7 +103,12 @@
         // Gửi yêu cầu đến Google Apps Script
         fetch(gas_webhook, {
             method: 'POST',
-            body: JSON.stringify({qr_data: decodedText})
+            mode: 'no-cors', // Thêm dòng này để bỏ qua kiểm tra CORS
+            cache: 'no-cache',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({qr_data: qrCode})
         })
         .then(res => res.json())
         .then(response => {
