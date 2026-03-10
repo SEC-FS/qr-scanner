@@ -94,28 +94,20 @@
     }
 
     function onScanSuccess(decodedText) {
-        // Tạm dừng camera ngay lập tức để tránh gửi trùng
         html5QrCode.pause();
-        
         document.getElementById('status').innerText = "⌛ ĐANG KIỂM TRA...";
-        document.getElementById('status').style.color = "#f39c12";
-
-        // Gửi yêu cầu đến Google Apps Script
-        fetch(gas_webhook, {
-            method: 'POST',
-            mode: 'no-cors', // Thêm dòng này để bỏ qua kiểm tra CORS
-            cache: 'no-cache',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({qr_data: qrCode})
-        })
+        
+        // Gửi qua phương thức GET để tránh lỗi CSP
+        const urlWithParams = `${gas_webhook}?action=checkin&id=${encodeURIComponent(decodedText)}`;
+    
+        fetch(urlWithParams)
         .then(res => res.json())
         .then(response => {
             showResult(response);
         })
         .catch(err => {
-            showResult({success: false, message: "Lỗi kết nối máy chủ!"});
+            console.error(err);
+            showResult({success: false, message: "Lỗi kết nối máy chủ hoặc CSP!"});
         });
     }
 
