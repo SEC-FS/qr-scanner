@@ -94,31 +94,28 @@
         });
     }
 
-   function onScanSuccess(decodedText) {
+   async function onScanSuccess(decodedText) {
         html5QrCode.pause();
-        document.getElementById('status').innerText = "⌛ Đang lấy dữ liệu...";
+        document.getElementById('status').innerText = "⌛ Đang quét...";
     
-        // 1. Link gốc của bạn
-        const raw_url = gas_webhook + "?action=checkin&id=" + encodeURIComponent(decodedText);
+        const url = gas_webhook + "?action=checkin&id=" + encodeURIComponent(decodedText);
     
-        // 2. Chèn Proxy vào trước link gốc để lách luật CORS
-        const proxy_url = "https://corsproxy.io/?" + encodeURIComponent(raw_url);
-    
-        // 3. Gọi AJAX bình thường (dataType là json, không phải jsonp)
-        $.ajax({
-            url: proxy_url,
-            method: "GET",
-            dataType: "json", // Nhận JSON thuần túy
-            success: function(response) {
-                console.log("Dữ liệu JSON sạch:", response);
-                showResult(response);
-            },
-            error: function(xhr, status, error) {
-                console.error("Lỗi khi qua Proxy:", error);
-                alert("Không thể kết nối Server qua Proxy!");
-                html5QrCode.resume();
-            }
-        });
+        try {
+            // Gọi thẳng tới Google
+            const response = await fetch(url);
+            
+            // Google sẽ redirect, fetch sẽ tự động đi theo link đó
+            const data = await response.json(); 
+            
+            console.log("Dữ liệu nhận được:", data);
+            showResult(data);
+            
+        } catch (error) {
+            console.error("Lỗi Fetch:", error);
+            // Nếu vẫn bị CORS, trình duyệt sẽ nhảy vào đây
+            alert("Trình duyệt chặn kết nối trực tiếp (CORS).");
+            html5QrCode.resume();
+        }
     }
     
     // Hàm này sẽ được Google Apps Script gọi lại với dữ liệu kết quả
