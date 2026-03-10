@@ -141,38 +141,71 @@
     }
 
     function showResult(response) {
+        const readerEl = document.getElementById('reader');
         const statusEl = document.getElementById('status');
         const infoEl = document.getElementById('guest-info');
         const rescanBtn = document.getElementById('rescan-btn');
         
+        readerEl.style.display = 'none'; 
         updateStatus("✅ CHECKED IN", "#28a745");
         
+        // Tăng kích thước font chữ và cải thiện layout
         infoEl.innerHTML = `
-            <div class="info-container animate-in">
-                <div class="info-item"><span class="info-label">Guest ID</span><span class="info-value id-value">${response.id}</span></div>
-                <div class="info-item"><span class="info-label">Full Name</span><span class="info-value">${response.name}</span></div>
-                <div class="info-item"><span class="info-label">Company</span><span class="info-value">${response.company}</span></div>
-                <div class="info-item"><span class="info-label">Project</span><span class="info-value">${response.project}</span></div>
-                <div class="info-item"><span class="info-label">Active Date (J)</span><span class="info-value">${response.activeDate}</span></div>
-                <div class="info-item"><span class="info-label">Note (Z)</span><span class="info-value">${response.approvalTime}</span></div>
+            <div class="info-container animate-in" style="text-align: left; margin-top: 15px;">
+                <div class="info-item" style="margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+                    <span class="info-label" style="display: block; font-size: 14px; color: #666; text-transform: uppercase;">Full Name</span>
+                    <span class="info-value" style="display: block; font-size: 24px; font-weight: 700; color: #1a73e8;">${response.name}</span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="info-item">
+                        <span class="info-label" style="display: block; font-size: 12px; color: #666;">GUEST ID</span>
+                        <span class="info-value" style="display: block; font-size: 18px; font-weight: 600;">${response.id}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label" style="display: block; font-size: 12px; color: #666;">ACTIVE DATE</span>
+                        <span class="info-value" style="display: block; font-size: 18px; font-weight: 600; color: #d93025;">${response.activeDate}</span>
+                    </div>
+                </div>
+    
+                <div class="info-item" style="margin-top: 12px;">
+                    <span class="info-label" style="display: block; font-size: 12px; color: #666;">COMPANY / PROJECT</span>
+                    <span class="info-value" style="display: block; font-size: 18px; font-weight: 500;">${response.company} - ${response.project}</span>
+                </div>
+    
+                <div class="info-item" style="margin-top: 12px; background: #f8f9fa; padding: 10px; border-radius: 8px;">
+                    <span class="info-label" style="display: block; font-size: 12px; color: #666;">APPROVAL TIME</span>
+                    <span class="info-value" style="display: block; font-size: 16px; font-style: italic;">${response.approvalTime}</span>
+                </div>
             </div>`;
         
         rescanBtn.style.display = 'flex';
     }
 
     function showError(message) {
+        document.getElementById('reader').style.display = 'none'; // Ẩn camera
         updateStatus("❌ TỪ CHỐI", "#dc3545");
-        document.getElementById('guest-info').innerHTML = `<div class="animate-in" style="color:#dc3545; font-weight:bold; margin-top:10px;">${message}</div>`;
+        document.getElementById('guest-info').innerHTML = `
+            <div class="animate-in" style="color:#dc3545; font-weight:bold; margin-top:20px; font-size:1.1em;">
+                ${message}
+            </div>`;
         document.getElementById('rescan-btn').style.display = 'flex';
     }
 
     function startScanning() {
+        // 1. Hiện lại khung quét QR
+        document.getElementById('reader').style.display = 'block'; 
+        
+        // 2. Reset giao diện
         document.getElementById('rescan-btn').style.display = 'none';
         document.getElementById('guest-info').innerText = "Vui lòng đưa mã QR vào khung hình";
         updateStatus("SẴN SÀNG QUÉT", "#333");
-        html5QrCode.resume();
+        
+        // 3. Tiếp tục chạy camera
+        if (html5QrCode) {
+            html5QrCode.resume();
+        }
     }
-
     function updateStatus(text, color) {
         const el = document.getElementById('status');
         el.innerText = text;
