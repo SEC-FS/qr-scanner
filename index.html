@@ -96,20 +96,27 @@
 
    function onScanSuccess(decodedText) {
         html5QrCode.pause();
-        
+        document.getElementById('status').innerText = "⌛ Đang lấy dữ liệu...";
+    
+        // 1. Link gốc của bạn
+        const raw_url = gas_webhook + "?action=checkin&id=" + encodeURIComponent(decodedText);
+    
+        // 2. Chèn Proxy vào trước link gốc để lách luật CORS
+        const proxy_url = "https://corsproxy.io/?" + encodeURIComponent(raw_url);
+    
+        // 3. Gọi AJAX bình thường (dataType là json, không phải jsonp)
         $.ajax({
-            url: gas_webhook,
-            data: {
-                action: 'checkin',
-                id: decodedText
-            },
-            dataType: 'jsonp', // Ép jQuery dùng cơ chế thẻ <script>
-            jsonp: 'callback', // Tên tham số mà GAS đang đợi
+            url: proxy_url,
+            method: "GET",
+            dataType: "json", // Nhận JSON thuần túy
             success: function(response) {
+                console.log("Dữ liệu JSON sạch:", response);
                 showResult(response);
             },
             error: function(xhr, status, error) {
-                console.error("Lỗi jQuery:", error);
+                console.error("Lỗi khi qua Proxy:", error);
+                alert("Không thể kết nối Server qua Proxy!");
+                html5QrCode.resume();
             }
         });
     }
