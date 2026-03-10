@@ -207,37 +207,4 @@
         el.innerText = text;
         el.style.color = color;
     }
-
-    // --- LỚP 1: CHẶN CHUỘT PHẢI VÀ PHÍM TẮT ---
-    document.addEventListener('contextmenu', event => event.preventDefault());
-    
-    document.onkeydown = function(e) {
-        // Chặn F12 (123)
-        // Chặn Ctrl+Shift+I (73), Ctrl+Shift+J (74), Ctrl+Shift+C (67)
-        // Chặn Ctrl+U (85 - Xem nguồn trang)
-        if (e.keyCode == 123 || 
-            (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) ||
-            (e.ctrlKey && e.keyCode == 85)) {
-            return false;
-        }
-    };
-    
-    // --- LỚP 2: BẪY DEBUGGER VÔ TẬN ---
-    // Khi F12 mở ra, trình duyệt sẽ bị khựng lại liên tục tại đây
-    (function() {
-        (function a() {
-            try {
-                (function b(i) {
-                    if (("" + i / i).length !== 1 || i % 20 === 0) {
-                        (function() {}).constructor("debugger")();
-                    } else {
-                        debugger;
-                    }
-                    b(++i);
-                })(0);
-            } catch (e) {
-                setTimeout(a, 50);
-            }
-        })();
-    })();
 </script>
