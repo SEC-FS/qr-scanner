@@ -97,25 +97,31 @@
    function onScanSuccess(decodedText) {
         html5QrCode.pause();
         document.getElementById('status').innerText = "⌛ ĐANG KIỂM TRA...";
-    
-        // Xóa các thẻ script cũ (nếu có) để tránh xung đột
-        const oldScript = document.getElementById('api-query');
-        if (oldScript) oldScript.remove();
-    
-        // Tạo hàm callback toàn cục
-        window.handleResponse = function(response) {
-            showResult(response);
-        };
-    
-        const script = document.createElement('script');
-        script.id = 'api-query';
-        // Thêm timestamp để tránh bị lưu cache cũ (Failed to load data)
-        script.src = `${gas_webhook}?action=checkin&id=${encodeURIComponent(decodedText)}&callback=handleResponse&v=${Date.now()}`;
         
-        // Đảm bảo script được tải và chạy ngay
-        script.async = true; 
-        
-        document.body.appendChild(script);
+        const url = gas_webhook + "?action=checkin&id=" + encodeURIComponent(decodedText);
+    
+        fetch(url, {
+            method: "GET",
+            mode: "cors", // Cho phép truy vấn xuyên miền
+            redirect: "follow" // Quan trọng: Tự động đi theo link chuyển hướng của Google
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Mất kết nối server");
+            return response.text(); // Lấy dữ liệu dạng chữ trước để tránh lỗi parse
+        })
+        .then(text => {
+            try {
+                const data = JSON.parse(text); // Ép kiểu sang JSON thủ công
+                showResult(data);
+            } catch (e) {
+                console.error("Lỗi parse JSON:", text);
+                showResult({success: false, message: "Dữ liệu trả về sai định dạng"});
+            }
+        })
+        .catch(err => {
+            console.error("Lỗi Fetch:", err);
+            showResult({success: false, message: "Lỗi kết nối máy chủ (CORS/Redirect)"});
+        });
     }
     
     // Hàm này sẽ được Google Apps Script gọi lại với dữ liệu kết quả
